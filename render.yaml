@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: stracon-docs
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: STORAGE_DIR
+        value: /var/data
+      - key: ADMIN_PASSWORD
+        sync: false
+    disk:
+      name: stracon-docs-data
+      mountPath: /var/data
+      sizeGB: 10

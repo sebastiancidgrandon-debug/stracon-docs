@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#172847" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="STRACON Docs" />
+    <title>Documentos STRACON</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: #fff;
+        color: #242424;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      }
+      .top {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 14px 16px 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .logo {
+        color: #18284a;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 15px;
+        font-weight: 900;
+      }
+      .logo::before {
+        content: "";
+        width: 22px;
+        height: 22px;
+        background: linear-gradient(45deg, #ef3e42 0 45%, transparent 45% 55%, #ef3e42 55% 100%);
+        display: inline-block;
+      }
+      .qr-button,
+      .upload-button,
+      .edit-button,
+      .sync-badge,
+      .small-button {
+        min-height: 40px;
+        border: 1px solid #d5d5d5;
+        border-radius: 7px;
+        background: #fff;
+        color: #242424;
+        padding: 0 13px;
+        font: inherit;
+        font-weight: 600;
+      }
+      .sync-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 40px;
+        border-color: #bfe6cb;
+        background: #f3fbf5;
+        color: #1f6b3a;
+        font-size: 13px;
+      }
+      .admin-only { display: none; }
+      .admin .admin-only { display: inline-flex; }
+      .qr-panel {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 0 16px 14px;
+        display: none;
+      }
+      .qr-panel.open { display: block; }
+      .qr-box {
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        padding: 14px;
+        display: grid;
+        grid-template-columns: 112px 1fr;
+        align-items: center;
+        gap: 14px;
+      }
+      .qr-box img {
+        width: 112px;
+        height: 112px;
+        object-fit: contain;
+      }
+      .qr-box strong,
+      .qr-box span { display: block; }
+      .qr-box span {
+        margin-top: 5px;
+        color: #6b6b6b;
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+      .bar {
+        min-height: 104px;
+        border-top: 1px solid #efefef;
+        border-bottom: 1px solid #d9d9d9;
+        display: flex;
+        align-items: center;
+        padding: 0 28px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 26px;
+        line-height: 1.14;
+        font-weight: 600;
+      }
+      .list { max-width: 760px; margin: 0 auto; }
+      button.row {
+        width: 100%;
+        min-height: 99px;
+        border: 0;
+        border-bottom: 1px solid #ececec;
+        background: #fff;
+        padding: 0 20px;
+        display: grid;
+        grid-template-columns: 82px 1fr;
+        align-items: center;
+        text-align: left;
+        cursor: pointer;
+      }
+      button.row:active { background: #f4f8ff; }
+      .folder {
+        width: 56px;
+        height: 40px;
+        border-radius: 3px 4px 4px 4px;
+        position: relative;
+        box-shadow: inset 0 -2px rgba(0, 0, 0, 0.08);
+      }
+      .folder::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: -7px;
+        width: 28px;
+        height: 10px;
+        border-radius: 4px 4px 0 0;
+        background: inherit;
+      }
+      .folder::after {
+        content: "👥";
+        position: absolute;
+        right: 7px;
+        bottom: 2px;
+        font-size: 18px;
+        filter: grayscale(1);
+        opacity: 0.8;
+      }
+      .blue { background: linear-gradient(#86c4f4, #56a7e6); }
+      .yellow { background: linear-gradient(#ffe47a, #ffc018); }
+      .gray { background: linear-gradient(#c3c9c9, #9ca6a8); }
+      .purple { background: linear-gradient(#bd83e5, #7a43ba); }
+      .green { background: linear-gradient(#b9e6b6, #5dbb69); }
+      .orange { background: linear-gradient(#ffc487, #ff8844); }
+      .name {
+        font-size: 28px;
+        line-height: 1.18;
+        font-weight: 400;
+      }
+      .item-actions {
+        display: none;
+        gap: 8px;
+        justify-content: flex-end;
+        padding: 0 14px 12px 96px;
+        border-bottom: 1px solid #ececec;
+      }
+      .editing .item-actions { display: flex; }
+      .editing button.row { border-bottom: 0; }
+      .small-button {
+        min-height: 34px;
+        padding: 0 10px;
+        font-size: 14px;
+      }
+      .small-button.danger {
+        border-color: #ffc5c5;
+        color: #b31320;
+      }
+      .crumbs {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 14px 20px;
+        border-bottom: 1px solid #ececec;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .crumbs button {
+        border: 0;
+        background: transparent;
+        color: #1f5f9f;
+        font: inherit;
+        padding: 0;
+      }
+      #goHome {
+        font-weight: 600;
+      }
+      .crumbs span {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .crumbs span.admin-only { display: none; }
+      .admin .crumbs span.admin-only { display: flex; }
+      .file {
+        width: 48px;
+        height: 60px;
+        border-radius: 5px;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 800;
+        background: #d33a3a;
+      }
+      .file.pdf { background: #d33a3a; }
+      .file.doc, .file.docx { background: #2b579a; }
+      .file.xls, .file.xlsx { background: #177245; }
+      .file.jpg, .file.jpeg, .file.png { background: #238457; }
+      .empty {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 26px 20px;
+        color: #707070;
+        border-bottom: 1px solid #ececec;
+      }
+      .hidden { display: none; }
+      .viewer {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.62);
+        display: none;
+        padding: 18px;
+        z-index: 20;
+      }
+      .viewer.open {
+        display: grid;
+        place-items: center;
+      }
+      .viewer-card {
+        width: min(920px, 100%);
+        max-height: 92vh;
+        background: #fff;
+        border-radius: 10px;
+        overflow: hidden;
+        display: grid;
+        grid-template-rows: auto minmax(260px, 1fr);
+      }
+      .viewer-head {
+        min-height: 58px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid #e8e8e8;
+      }
+      .viewer-head strong {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .viewer-body {
+        min-height: 320px;
+        max-height: calc(92vh - 58px);
+        overflow: auto;
+        display: block;
+        background: #f6f6f6;
+      }
+      .viewer-body iframe,
+      .viewer-body img {
+        width: 100%;
+        height: calc(92vh - 108px);
+        border: 0;
+        object-fit: contain;
+        background: #fff;
+      }
+      .viewer-fallback {
+        padding: 24px;
+        text-align: center;
+      }
+      .open-full {
+        border-bottom: 1px solid #e8e8e8;
+        padding: 10px 14px;
+        background: #fff;
+        text-align: center;
+      }
+      .open-full a {
+        display: inline-flex;
+        min-height: 38px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #d5d5d5;
+        border-radius: 7px;
+        color: #1f5f9f;
+        padding: 0 13px;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      @media (max-width: 430px) {
+        .top { padding: 12px 14px 8px; }
+        .logo { font-size: 14px; }
+        .qr-box { grid-template-columns: 92px 1fr; }
+        .qr-box img { width: 92px; height: 92px; }
+        .bar { padding: 0 20px; }
+        h1 { font-size: 23px; }
+        button.row { grid-template-columns: 82px 1fr; padding: 0 14px; }
+        .name { font-size: 27px; }
+        .top { flex-wrap: wrap; }
+        .item-actions { padding-left: 14px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="top">
+        <div class="logo" aria-label="STRACON Group">STRACON</div>
+        <span>
+          <button class="qr-button" id="toggleQr" type="button">QR</button>
+          <button class="edit-button" id="adminLogin" type="button">Admin</button>
+          <button class="edit-button admin-only" id="toggleEdit" type="button">Editar</button>
+          <span class="sync-badge" id="syncBadge">Local</span>
+        </span>
+      </section>
+      <section class="qr-panel" id="qrPanel">
+        <div class="qr-box">
+          <img id="qrImage" alt="QR general" />
+          <p>
+            <strong>QR general</strong>
+            <span id="qrUrl">http://192.168.1.51:5175/simple.html</span>
+          </p>
+        </div>
+      </section>
+      <section class="bar">
+        <h1>Cuadrilla Mecanica / Estructura / Piping</h1>
+      </section>
+      <nav class="crumbs" id="crumbs"></nav>
+      <section class="list" id="list"></section>
+      <input class="hidden" id="fileInput" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,image/*" />
+    </main>
+    <section class="viewer" id="viewer">
+      <div class="viewer-card">
+        <div class="viewer-head">
+          <strong id="viewerTitle"></strong>
+          <button class="small-button" type="button" id="closeViewer">Cerrar</button>
+        </div>
+        <div class="viewer-body" id="viewerBody"></div>
+      </div>
+    </section>
+    <script>
+      const STORAGE_KEY = "stracon-simple-library-v1";
+      const appUrl = `${location.origin}${location.pathname}`;
+      const API_URL = `${location.origin}/api/library`;
+      let library = loadLocalLibrary();
+      const trail = [];
+      let current = "root";
+      let editing = false;
+      let isAdmin = localStorage.getItem("stracon-admin") === "true";
+      let serverSync = false;
+      let lastVersion = library.version || library.updatedAt || 0;
+      document.querySelector("#qrUrl").textContent = appUrl;
+      document.querySelector("#qrImage").src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(appUrl)}`;
+      document.querySelector("#toggleQr").addEventListener("click", () => {
+        document.querySelector("#qrPanel").classList.toggle("open");
+      });
+      document.querySelector("#adminLogin").addEventListener("click", () => {
+        if (isAdmin) {
+          isAdmin = false;
+          editing = false;
+          localStorage.removeItem("stracon-admin");
+          render();
+          return;
+        }
+        const password = prompt("Clave administrador");
+        if (password === "stracon2026") {
+          isAdmin = true;
+          localStorage.setItem("stracon-admin", "true");
+          render();
+        } else if (password) {
+          alert("Clave incorrecta");
+        }
+      });
+      document.querySelector("#toggleEdit").addEventListener("click", () => {
+        editing = !editing;
+        document.querySelector("#toggleEdit").textContent = editing ? "Listo" : "Editar";
+        render();
+      });
+      document.querySelector("#fileInput").addEventListener("change", uploadFiles);
+      document.querySelector("#closeViewer").addEventListener("click", closeViewer);
+
+      async function init() {
+        await loadFromServer();
+        render();
+        setInterval(refreshFromServer, 3000);
+        window.addEventListener("focus", refreshFromServer);
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden) refreshFromServer();
+        });
+      }
+
+      function render() {
+        const list = document.querySelector("#list");
+        const crumbs = document.querySelector("#crumbs");
+        document.body.classList.toggle("admin", isAdmin);
+        document.body.classList.toggle("editing", editing && isAdmin);
+        document.querySelector("#adminLogin").textContent = isAdmin ? "Salir admin" : "Admin";
+        document.querySelector("#toggleEdit").textContent = editing ? "Listo" : "Editar";
+        crumbs.innerHTML = `
+          <button type="button" id="goHome">${trail.length ? "Inicio" : "Carpetas"}</button>
+          <span class="admin-only">
+            <button class="upload-button" type="button" id="uploadButton">Subir archivo</button>
+            <button class="upload-button" type="button" id="newFolderButton">Nueva carpeta</button>
+          </span>
+        `;
+        crumbs.querySelector("#goHome")?.addEventListener("click", () => {
+          current = "root";
+          trail.length = 0;
+          render();
+        });
+        crumbs.querySelector("#uploadButton")?.addEventListener("click", () => {
+          document.querySelector("#fileInput").click();
+        });
+        crumbs.querySelector("#newFolderButton")?.addEventListener("click", createFolder);
+        const items = childrenOf(current);
+        list.innerHTML = items.map((item) => {
+          if (item.kind === "file") {
+            return `
+              <div class="item">
+                <button class="row" type="button" data-file="${item.id}">
+                  <span class="file ${item.ext.toLowerCase()}">${item.ext}</span><span class="name">${escapeHtml(item.name)}</span>
+                </button>
+                <div class="item-actions">
+                  <button class="small-button" type="button" data-move="${item.id}">Mover</button>
+                  <button class="small-button danger" type="button" data-delete="${item.id}">Eliminar</button>
+                </div>
+              </div>
+            `;
+          }
+          return `
+            <div class="item">
+              <button class="row" type="button" data-folder="${item.id}" data-name="${escapeHtml(item.name)}">
+                <span class="folder ${item.color}"></span><span class="name">${escapeHtml(item.name)}</span>
+              </button>
+              <div class="item-actions">
+                <button class="small-button" type="button" data-rename="${item.id}">Renombrar</button>
+                <button class="small-button" type="button" data-move="${item.id}">Mover</button>
+                <button class="small-button danger" type="button" data-delete="${item.id}">Eliminar</button>
+              </div>
+            </div>
+          `;
+        }).join("") || '<div class="empty">Carpeta vacia. Presiona Subir archivo para agregar documentos.</div>';
+        document.querySelectorAll("[data-folder]").forEach((button) => {
+          button.addEventListener("click", () => {
+            current = button.dataset.folder;
+            trail.splice(0, trail.length, button.dataset.name);
+            render();
+          });
+        });
+        document.querySelectorAll("[data-file]").forEach((button) => {
+          button.addEventListener("click", () => {
+            openFile(button.dataset.file);
+          });
+        });
+        document.querySelectorAll("[data-delete]").forEach((button) => {
+          button.addEventListener("click", () => deleteItem(button.dataset.delete));
+        });
+        document.querySelectorAll("[data-move]").forEach((button) => {
+          button.addEventListener("click", () => moveItem(button.dataset.move));
+        });
+        document.querySelectorAll("[data-rename]").forEach((button) => {
+          button.addEventListener("click", () => renameFolder(button.dataset.rename));
+        });
+      }
+
+      function uploadFiles(event) {
+        const files = Array.from(event.target.files || []);
+        if (!files.length) return;
+        Promise.all(files.map(readFile)).then((items) => {
+          library.files.push(...items);
+          saveLibrary();
+          event.target.value = "";
+          render();
+        });
+      }
+
+      function readFile(file) {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            resolve({
+              id: `file-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+              kind: "file",
+              parent: current,
+              name: file.name,
+              ext: fileExtension(file.name),
+              data: reader.result,
+              mime: file.type || "application/octet-stream"
+            });
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function fileExtension(name) {
+        const ext = (name.split(".").pop() || "FILE").toUpperCase();
+        if (ext === "JPEG") return "JPG";
+        return ext.slice(0, 4);
+      }
+
+      function childrenOf(parent) {
+        return [
+          ...library.folders.filter((item) => item.parent === parent),
+          ...library.files.filter((item) => item.parent === parent)
+        ];
+      }
+
+      function createFolder() {
+        const name = prompt("Nombre de la carpeta");
+        if (!name?.trim()) return;
+        library.folders.push({
+          id: `folder-${Date.now()}`,
+          kind: "folder",
+          parent: current,
+          name: name.trim(),
+          color: "yellow"
+        });
+        saveLibrary();
+        render();
+      }
+
+      function renameFolder(id) {
+        const folder = library.folders.find((item) => item.id === id);
+        if (!folder) return;
+        const name = prompt("Nuevo nombre", folder.name);
+        if (!name?.trim()) return;
+        folder.name = name.trim();
+        saveLibrary();
+        render();
+      }
+
+      function deleteItem(id) {
+        const folder = library.folders.find((item) => item.id === id);
+        const file = library.files.find((item) => item.id === id);
+        const name = folder?.name || file?.name;
+        if (!name || !confirm(`Eliminar "${name}"?`)) return;
+        if (folder) {
+          const ids = folderIds(folder.id);
+          library.folders = library.folders.filter((item) => !ids.includes(item.id));
+          library.files = library.files.filter((item) => !ids.includes(item.parent));
+        } else {
+          library.files = library.files.filter((item) => item.id !== id);
+        }
+        saveLibrary();
+        render();
+      }
+
+      function moveItem(id) {
+        const item = library.folders.find((entry) => entry.id === id) || library.files.find((entry) => entry.id === id);
+        if (!item) return;
+        const options = library.folders
+          .filter((folder) => folder.id !== id)
+          .map((folder, index) => `${index + 1}. ${folderPath(folder.id)}`);
+        const selected = prompt(`Mover a carpeta numero:\n${options.join("\n")}`);
+        const index = Number(selected) - 1;
+        const target = library.folders.filter((folder) => folder.id !== id)[index];
+        if (!target) return;
+        if (item.kind === "folder" && folderIds(item.id).includes(target.id)) {
+          alert("No se puede mover una carpeta dentro de si misma.");
+          return;
+        }
+        item.parent = target.id;
+        saveLibrary();
+        render();
+      }
+
+      function openFile(id) {
+        const file = library.files.find((item) => item.id === id);
+        if (!file) return;
+        document.querySelector("#viewerTitle").textContent = file.name;
+        const body = document.querySelector("#viewerBody");
+        const ext = file.ext.toLowerCase();
+        const source = file.url || file.data;
+        const openUrl = source || "#";
+        if (ext === "pdf") {
+          body.innerHTML = `
+            <div class="open-full"><a href="${openUrl}" target="_blank" rel="noreferrer">Abrir documento completo</a></div>
+            <iframe src="${openUrl}" title="${escapeHtml(file.name)}"></iframe>
+          `;
+        } else if (["jpg", "jpeg", "png"].includes(ext)) {
+          body.innerHTML = `
+            <div class="open-full"><a href="${openUrl}" target="_blank" rel="noreferrer">Abrir imagen completa</a></div>
+            <img src="${openUrl}" alt="${escapeHtml(file.name)}" />
+          `;
+        } else {
+          body.innerHTML = `<div class="viewer-fallback"><p>Este tipo de archivo se abre desde el navegador del celular.</p><p><a class="small-button" href="${openUrl}" target="_blank" rel="noreferrer" download="${escapeHtml(file.name)}">Descargar / abrir completo</a></p></div>`;
+        }
+        document.querySelector("#viewer").classList.add("open");
+      }
+
+      function closeViewer() {
+        document.querySelector("#viewer").classList.remove("open");
+        document.querySelector("#viewerBody").innerHTML = "";
+      }
+
+      function folderIds(id) {
+        const ids = [id];
+        library.folders.filter((item) => item.parent === id).forEach((child) => {
+          ids.push(...folderIds(child.id));
+        });
+        return ids;
+      }
+
+      function folderPath(id) {
+        const folder = library.folders.find((item) => item.id === id);
+        if (!folder) return "";
+        if (folder.parent === "root") return folder.name;
+        return `${folderPath(folder.parent)} / ${folder.name}`;
+      }
+
+      function saveLibrary() {
+        library.updatedAt = Date.now();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(library));
+        setSyncText("Guardando");
+        fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Admin-Password": "stracon2026"
+          },
+          body: JSON.stringify(library)
+        }).then((response) => response.json())
+          .then((saved) => {
+            library = saved;
+            lastVersion = saved.version || saved.updatedAt || Date.now();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(library));
+            serverSync = true;
+            updateSyncBadge();
+          })
+          .catch(() => {
+            serverSync = false;
+            updateSyncBadge();
+          });
+      }
+
+      function loadLocalLibrary() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+          if (saved?.folders?.length && saved?.files) return saved;
+        } catch {
+          localStorage.removeItem(STORAGE_KEY);
+        }
+        return defaultLibrary();
+      }
+
+      async function loadFromServer() {
+        try {
+          const response = await fetch(API_URL, { cache: "no-store" });
+          if (!response.ok) throw new Error("No server library");
+          const remote = await response.json();
+          if (remote?.folders && remote?.files) {
+            library = remote;
+            lastVersion = remote.version || remote.updatedAt || Date.now();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(library));
+            serverSync = true;
+          }
+        } catch {
+          serverSync = false;
+        }
+        updateSyncBadge();
+      }
+
+      async function refreshFromServer() {
+        if (!serverSync || editing) return;
+        try {
+          const response = await fetch(API_URL, { cache: "no-store" });
+          if (!response.ok) throw new Error("No server library");
+          const remote = await response.json();
+          const remoteVersion = remote.version || remote.updatedAt || 0;
+          if (remoteVersion && remoteVersion !== lastVersion) {
+            library = remote;
+            lastVersion = remoteVersion;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(library));
+            render();
+          }
+        } catch {
+          serverSync = false;
+          updateSyncBadge();
+        }
+      }
+
+      function updateSyncBadge() {
+        setSyncText(serverSync ? "Sincronizado" : "Local");
+      }
+
+      function setSyncText(text) {
+        document.querySelector("#syncBadge").textContent = text;
+      }
+
+      function defaultLibrary() {
+        const version = Date.now();
+        return {
+          version,
+          updatedAt: version,
+          folders: [
+            { id: "art", kind: "folder", parent: "root", name: "ART", color: "blue" },
+            { id: "certificados-cursos", kind: "folder", parent: "root", name: "Certificados de Cursos", color: "yellow" },
+            { id: "certificados-herramientas", kind: "folder", parent: "root", name: "Certificados Herramientas", color: "gray" },
+            { id: "cursos", kind: "folder", parent: "root", name: "Cursos", color: "purple" },
+            { id: "difusiones", kind: "folder", parent: "root", name: "Difusiones x Cuadrillas", color: "green" },
+            { id: "examenes", kind: "folder", parent: "root", name: "Examenes Preocupacionales", color: "orange" },
+            { id: "hds", kind: "folder", parent: "root", name: "HDS", color: "gray" },
+            { id: "plan-rigging", kind: "folder", parent: "root", name: "Plan Rigging", color: "yellow" },
+            { id: "procedimientos", kind: "folder", parent: "root", name: "Procedimientos", color: "blue" },
+            { id: "trabajador-sebastian", kind: "folder", parent: "certificados-cursos", name: "Sebastian Alejandro Cid Grandon", color: "yellow" },
+            { id: "trabajador-dagoberto", kind: "folder", parent: "certificados-cursos", name: "Dagoberto Alexis Matus Leiva", color: "yellow" },
+            { id: "trabajador-alex", kind: "folder", parent: "certificados-cursos", name: "Alex Anibal Montoya Esparza", color: "yellow" },
+            { id: "trabajador-denis", kind: "folder", parent: "certificados-cursos", name: "Denis Eduardo Navarro Canales", color: "yellow" },
+            { id: "trabajador-segundo", kind: "folder", parent: "certificados-cursos", name: "Segundo Ivan Ahumada Contreras", color: "yellow" },
+            { id: "trabajador-marcelo", kind: "folder", parent: "certificados-cursos", name: "Marcelo Antonio Canales Varela", color: "yellow" },
+            { id: "trabajador-patricio", kind: "folder", parent: "certificados-cursos", name: "Patricio Alejandro Salgado Diaz", color: "yellow" },
+            { id: "trabajador-rodrigo", kind: "folder", parent: "certificados-cursos", name: "Rodrigo Patricio Segovia Araya", color: "yellow" }
+          ],
+          files: []
+        };
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      init();
+    </script>
+  </body>
+</html>

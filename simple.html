@@ -26,19 +26,9 @@
         gap: 12px;
       }
       .logo {
-        color: #18284a;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 15px;
-        font-weight: 900;
-      }
-      .logo::before {
-        content: "";
-        width: 22px;
-        height: 22px;
-        background: linear-gradient(45deg, #ef3e42 0 45%, transparent 45% 55%, #ef3e42 55% 100%);
-        display: inline-block;
+        width: 154px;
+        height: auto;
+        display: block;
       }
       .qr-button,
       .upload-button,
@@ -303,7 +293,7 @@
       }
       @media (max-width: 430px) {
         .top { padding: 12px 14px 8px; }
-        .logo { font-size: 14px; }
+        .logo { width: 136px; }
         .qr-box { grid-template-columns: 92px 1fr; }
         .qr-box img { width: 92px; height: 92px; }
         .bar { padding: 0 20px; }
@@ -318,7 +308,7 @@
   <body>
     <main>
       <section class="top">
-        <div class="logo" aria-label="STRACON Group">STRACON</div>
+        <img class="logo" src="./logo-stracon.png" alt="STRACON" />
         <span>
           <button class="qr-button" id="toggleQr" type="button">QR</button>
           <button class="edit-button" id="adminLogin" type="button">Admin</button>

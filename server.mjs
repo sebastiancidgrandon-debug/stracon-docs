@@ -18,6 +18,7 @@ const types = {
   ".json": "application/json; charset=utf-8",
   ".webmanifest": "application/manifest+json; charset=utf-8",
   ".png": "image/png",
+  ".svg": "image/svg+xml; charset=utf-8",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
   ".pdf": "application/pdf",
@@ -66,11 +67,20 @@ createServer(async (req, res) => {
 
 async function serveStatic(req, res) {
   const pathname = new URL(req.url, `http://localhost:${port}`).pathname;
-  const target = pathname === "/" ? "/simple.html" : pathname;
-  const safePath = normalize(decodeURIComponent(target)).replace(/^(\.\.[/\\])+/, "");
-  const filePath = join(root, safePath);
+  if (pathname.startsWith("/uploads/")) {
+    await serveFileFromBase(res, uploadsDir, pathname.slice("/uploads/".length));
+    return;
+  }
 
-  if (!filePath.startsWith(root)) {
+  const target = pathname === "/" ? "/simple.html" : pathname;
+  await serveFileFromBase(res, root, target);
+}
+
+async function serveFileFromBase(res, baseDir, target) {
+  const safePath = normalize(decodeURIComponent(target)).replace(/^(\.\.[/\\])+/, "");
+  const filePath = join(baseDir, safePath);
+
+  if (!filePath.startsWith(baseDir)) {
     res.writeHead(403);
     res.end("Forbidden");
     return;

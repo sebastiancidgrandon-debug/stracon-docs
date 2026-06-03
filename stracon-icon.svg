@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="STRACON Docs">
+  <rect width="512" height="512" rx="96" fill="#172847"/>
+  <path d="M72 112h74l82 82v74L72 112Zm0 82 156 156v74H72V194Z" fill="#ef4444"/>
+  <path d="M268 144h132v46H268v-46Zm0 88h172v46H268v-46Zm0 88h132v46H268v-46Z" fill="#ffffff"/>
+</svg>

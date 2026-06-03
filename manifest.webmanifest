@@ -10,7 +10,14 @@
   "theme_color": "#172847",
   "categories": ["business", "productivity"],
   "lang": "es-CL",
-  "icons": [],
+  "icons": [
+    {
+      "src": "./stracon-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Abrir biblioteca",

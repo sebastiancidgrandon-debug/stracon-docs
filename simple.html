@@ -359,7 +359,8 @@
       const trail = [];
       let current = "root";
       let editing = false;
-      let isAdmin = localStorage.getItem("stracon-admin") === "true";
+      let adminPassword = sessionStorage.getItem("stracon-admin-password") || "";
+      let isAdmin = Boolean(adminPassword);
       let serverSync = false;
       let lastVersion = library.version || library.updatedAt || 0;
       document.querySelector("#qrUrl").textContent = appUrl;
@@ -371,17 +372,17 @@
         if (isAdmin) {
           isAdmin = false;
           editing = false;
-          localStorage.removeItem("stracon-admin");
+          adminPassword = "";
+          sessionStorage.removeItem("stracon-admin-password");
           render();
           return;
         }
         const password = prompt("Clave administrador");
-        if (password === "stracon2026") {
+        if (password) {
+          adminPassword = password;
           isAdmin = true;
-          localStorage.setItem("stracon-admin", "true");
+          sessionStorage.setItem("stracon-admin-password", password);
           render();
-        } else if (password) {
-          alert("Clave incorrecta");
         }
       });
       document.querySelector("#toggleEdit").addEventListener("click", () => {
@@ -393,6 +394,7 @@
       document.querySelector("#closeViewer").addEventListener("click", closeViewer);
 
       async function init() {
+        registerServiceWorker();
         await loadFromServer();
         render();
         setInterval(refreshFromServer, 3000);
@@ -629,10 +631,13 @@
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-Admin-Password": "stracon2026"
+            "X-Admin-Password": adminPassword
           },
           body: JSON.stringify(library)
-        }).then((response) => response.json())
+        }).then((response) => {
+          if (!response.ok) throw new Error("No autorizado");
+          return response.json();
+        })
           .then((saved) => {
             library = saved;
             lastVersion = saved.version || saved.updatedAt || Date.now();
@@ -642,8 +647,14 @@
           })
           .catch(() => {
             serverSync = false;
+            alert("No se pudo sincronizar. Revisa la clave admin o la conexion.");
             updateSyncBadge();
           });
+      }
+
+      function registerServiceWorker() {
+        if (!("serviceWorker" in navigator)) return;
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
       }
 
       function loadLocalLibrary() {

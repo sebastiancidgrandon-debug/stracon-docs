@@ -55,6 +55,45 @@
       }
       .admin-only { display: none; }
       .admin .admin-only { display: inline-flex; }
+      .admin-panel {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 0 16px 14px;
+        display: none;
+      }
+      .admin-panel.open { display: block; }
+      .admin-card {
+        border: 1px solid #d9e2ef;
+        border-radius: 8px;
+        background: #f8fbff;
+        padding: 14px;
+        display: grid;
+        gap: 12px;
+      }
+      .admin-card strong {
+        display: block;
+        color: #172847;
+      }
+      .admin-login-row,
+      .admin-tools {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .admin-card input {
+        min-height: 42px;
+        border: 1px solid #c8d3e1;
+        border-radius: 7px;
+        padding: 0 12px;
+        font: inherit;
+        flex: 1 1 180px;
+      }
+      .admin-message {
+        min-height: 18px;
+        color: #536274;
+        font-size: 13px;
+      }
       .qr-panel {
         max-width: 760px;
         margin: 0 auto;
@@ -277,7 +316,11 @@
         border-bottom: 1px solid #e8e8e8;
         padding: 10px 14px;
         background: #fff;
-        text-align: center;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
       }
       .open-full a {
         display: inline-flex;
@@ -312,9 +355,24 @@
         <span>
           <button class="qr-button" id="toggleQr" type="button">QR</button>
           <button class="edit-button" id="adminLogin" type="button">Admin</button>
-          <button class="edit-button admin-only" id="toggleEdit" type="button">Editar</button>
           <span class="sync-badge" id="syncBadge">Local</span>
         </span>
+      </section>
+      <section class="admin-panel" id="adminPanel">
+        <div class="admin-card">
+          <strong>Administrador</strong>
+          <div class="admin-login-row" id="adminLoginRow">
+            <input id="adminPasswordInput" type="password" autocomplete="current-password" placeholder="Clave administrador" />
+            <button class="edit-button" id="adminEnter" type="button">Entrar</button>
+          </div>
+          <div class="admin-tools admin-only">
+            <button class="upload-button" type="button" id="adminUpload">Subir archivo</button>
+            <button class="upload-button" type="button" id="adminNewFolder">Nueva carpeta</button>
+            <button class="edit-button" id="toggleEdit" type="button">Editar</button>
+            <button class="small-button" id="adminExit" type="button">Salir</button>
+          </div>
+          <div class="admin-message" id="adminMessage"></div>
+        </div>
       </section>
       <section class="qr-panel" id="qrPanel">
         <div class="qr-box">
@@ -345,6 +403,7 @@
       const STORAGE_KEY = "stracon-simple-library-v1";
       const appUrl = `${location.origin}${location.pathname}`;
       const API_URL = `${location.origin}/api/library`;
+      const VERIFY_URL = `${location.origin}/api/admin/verify`;
       let library = loadLocalLibrary();
       const trail = [];
       let current = "root";
@@ -359,22 +418,17 @@
         document.querySelector("#qrPanel").classList.toggle("open");
       });
       document.querySelector("#adminLogin").addEventListener("click", () => {
-        if (isAdmin) {
-          isAdmin = false;
-          editing = false;
-          adminPassword = "";
-          sessionStorage.removeItem("stracon-admin-password");
-          render();
-          return;
-        }
-        const password = prompt("Clave administrador");
-        if (password) {
-          adminPassword = password;
-          isAdmin = true;
-          sessionStorage.setItem("stracon-admin-password", password);
-          render();
-        }
+        document.querySelector("#adminPanel").classList.toggle("open");
       });
+      document.querySelector("#adminEnter").addEventListener("click", enterAdmin);
+      document.querySelector("#adminPasswordInput").addEventListener("keydown", (event) => {
+        if (event.key === "Enter") enterAdmin();
+      });
+      document.querySelector("#adminExit").addEventListener("click", exitAdmin);
+      document.querySelector("#adminUpload").addEventListener("click", () => {
+        document.querySelector("#fileInput").click();
+      });
+      document.querySelector("#adminNewFolder").addEventListener("click", createFolder);
       document.querySelector("#toggleEdit").addEventListener("click", () => {
         editing = !editing;
         document.querySelector("#toggleEdit").textContent = editing ? "Listo" : "Editar";
@@ -399,7 +453,8 @@
         const crumbs = document.querySelector("#crumbs");
         document.body.classList.toggle("admin", isAdmin);
         document.body.classList.toggle("editing", editing && isAdmin);
-        document.querySelector("#adminLogin").textContent = isAdmin ? "Salir admin" : "Admin";
+        document.querySelector("#adminLogin").textContent = isAdmin ? "Admin activo" : "Admin";
+        document.querySelector("#adminLoginRow").style.display = isAdmin ? "none" : "flex";
         document.querySelector("#toggleEdit").textContent = editing ? "Listo" : "Editar";
         crumbs.innerHTML = `
           <button type="button" id="goHome">${trail.length ? "Inicio" : "Carpetas"}</button>
@@ -577,18 +632,24 @@
         const ext = file.ext.toLowerCase();
         const source = file.url || file.data;
         const openUrl = source || "#";
+        const fileActions = `
+          <div class="open-full">
+            <a href="${openUrl}" target="_blank" rel="noreferrer">Abrir completo</a>
+            <a href="${openUrl}" rel="noreferrer" download="${escapeHtml(file.name)}">Descargar</a>
+          </div>
+        `;
         if (ext === "pdf") {
           body.innerHTML = `
-            <div class="open-full"><a href="${openUrl}" target="_blank" rel="noreferrer">Abrir documento completo</a></div>
+            ${fileActions}
             <iframe src="${openUrl}" title="${escapeHtml(file.name)}"></iframe>
           `;
         } else if (["jpg", "jpeg", "png"].includes(ext)) {
           body.innerHTML = `
-            <div class="open-full"><a href="${openUrl}" target="_blank" rel="noreferrer">Abrir imagen completa</a></div>
+            ${fileActions}
             <img src="${openUrl}" alt="${escapeHtml(file.name)}" />
           `;
         } else {
-          body.innerHTML = `<div class="viewer-fallback"><p>Este tipo de archivo se abre desde el navegador del celular.</p><p><a class="small-button" href="${openUrl}" target="_blank" rel="noreferrer" download="${escapeHtml(file.name)}">Descargar / abrir completo</a></p></div>`;
+          body.innerHTML = `${fileActions}<div class="viewer-fallback"><p>Este tipo de archivo se abre desde el navegador del celular.</p></div>`;
         }
         document.querySelector("#viewer").classList.add("open");
       }
@@ -596,6 +657,48 @@
       function closeViewer() {
         document.querySelector("#viewer").classList.remove("open");
         document.querySelector("#viewerBody").innerHTML = "";
+      }
+
+      async function enterAdmin() {
+        const input = document.querySelector("#adminPasswordInput");
+        const password = input.value.trim();
+        if (!password) {
+          setAdminMessage("Ingresa la clave administrador.");
+          return;
+        }
+        setAdminMessage("Validando clave...");
+        try {
+          const response = await fetch(VERIFY_URL, {
+            method: "POST",
+            headers: { "X-Admin-Password": password }
+          });
+          if (!response.ok) throw new Error("No autorizado");
+          adminPassword = password;
+          isAdmin = true;
+          sessionStorage.setItem("stracon-admin-password", password);
+          input.value = "";
+          setAdminMessage("Modo administrador activo. Puedes subir, editar, mover o eliminar.");
+          render();
+        } catch {
+          adminPassword = "";
+          isAdmin = false;
+          sessionStorage.removeItem("stracon-admin-password");
+          setAdminMessage("Clave incorrecta.");
+          render();
+        }
+      }
+
+      function exitAdmin() {
+        adminPassword = "";
+        isAdmin = false;
+        editing = false;
+        sessionStorage.removeItem("stracon-admin-password");
+        setAdminMessage("Modo administrador cerrado.");
+        render();
+      }
+
+      function setAdminMessage(text) {
+        document.querySelector("#adminMessage").textContent = text;
       }
 
       function folderIds(id) {

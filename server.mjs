@@ -40,6 +40,16 @@ createServer(async (req, res) => {
       return;
     }
 
+    if (req.url === "/api/admin/verify" && req.method === "POST") {
+      if (req.headers["x-admin-password"] !== adminPassword) {
+        res.writeHead(401, { "Content-Type": "application/json; charset=utf-8" });
+        res.end(JSON.stringify({ ok: false }));
+        return;
+      }
+      sendJson(res, { ok: true });
+      return;
+    }
+
     if (req.url === "/api/library" && req.method === "POST") {
       if (req.headers["x-admin-password"] !== adminPassword) {
         res.writeHead(401, { "Content-Type": "application/json; charset=utf-8" });

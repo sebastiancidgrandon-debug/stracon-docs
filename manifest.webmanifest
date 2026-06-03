@@ -1,0 +1,26 @@
+{
+  "name": "STRACON Documentos",
+  "short_name": "STRACON Docs",
+  "description": "PWA offline-first para gestion documental en terreno.",
+  "start_url": "./simple.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f5f7",
+  "theme_color": "#172847",
+  "categories": ["business", "productivity"],
+  "lang": "es-CL",
+  "icons": [],
+  "shortcuts": [
+    {
+      "name": "Abrir biblioteca",
+      "short_name": "Biblioteca",
+      "url": "./simple.html"
+    },
+    {
+      "name": "Vista QR",
+      "short_name": "QR",
+      "url": "./simple.html"
+    }
+  ]
+}

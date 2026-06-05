@@ -219,6 +219,19 @@
         justify-content: space-between;
         gap: 12px;
       }
+      .crumb-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+      }
+      .crumb-current {
+        color: #536274;
+        font-size: 14px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
       .crumbs button {
         border: 0;
         background: transparent;
@@ -226,7 +239,8 @@
         font: inherit;
         padding: 0;
       }
-      #goHome {
+      #goHome,
+      #goBack {
         font-weight: 600;
       }
       .crumbs span {
@@ -458,13 +472,19 @@
         document.querySelector("#adminLogin").textContent = isAdmin ? "Admin activo" : "Admin";
         document.querySelector("#adminLoginRow").style.display = isAdmin ? "none" : "flex";
         document.querySelector("#toggleEdit").textContent = editing ? "Listo" : "Editar";
+        const currentFolderName = trail.length ? trail[trail.length - 1].name : "Carpetas";
         crumbs.innerHTML = `
-          <button type="button" id="goHome">${trail.length ? "Inicio" : "Carpetas"}</button>
+          <div class="crumb-left">
+            ${trail.length ? '<button type="button" id="goBack">Atras</button>' : ""}
+            <button type="button" id="goHome">${trail.length ? "Inicio" : "Carpetas"}</button>
+            ${trail.length ? `<span class="crumb-current">${escapeHtml(currentFolderName)}</span>` : ""}
+          </div>
           <span class="admin-only">
             <button class="upload-button" type="button" id="uploadButton">Subir archivo</button>
             <button class="upload-button" type="button" id="newFolderButton">Nueva carpeta</button>
           </span>
         `;
+        crumbs.querySelector("#goBack")?.addEventListener("click", goBack);
         crumbs.querySelector("#goHome")?.addEventListener("click", () => {
           current = "root";
           trail.length = 0;
@@ -505,7 +525,7 @@
         document.querySelectorAll("[data-folder]").forEach((button) => {
           button.addEventListener("click", () => {
             current = button.dataset.folder;
-            trail.splice(0, trail.length, button.dataset.name);
+            trail.push({ id: button.dataset.folder, name: button.dataset.name });
             render();
           });
         });
@@ -565,6 +585,12 @@
           ...library.folders.filter((item) => item.parent === parent),
           ...library.files.filter((item) => item.parent === parent)
         ];
+      }
+
+      function goBack() {
+        trail.pop();
+        current = trail.length ? trail[trail.length - 1].id : "root";
+        render();
       }
 
       function createFolder() {

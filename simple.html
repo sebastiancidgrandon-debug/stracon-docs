@@ -445,7 +445,6 @@
     </section>
     <script>
       const STORAGE_KEY = "stracon-simple-library-v1";
-      const SPECIALTY_KEY = "stracon-active-specialty-v1";
       const appUrl = `${location.origin}${location.pathname}`;
       const API_URL = `${location.origin}/api/library`;
       const VERIFY_URL = `${location.origin}/api/admin/verify`;
@@ -467,7 +466,7 @@
       ];
       let library = loadLocalLibrary();
       const trail = [];
-      let activeSpecialty = SPECIALTIES.find((item) => item.id === localStorage.getItem(SPECIALTY_KEY)) || SPECIALTIES[0];
+      let activeSpecialty = SPECIALTIES[0];
       ensureSpecialtyFolders(library);
       let current = activeSpecialty.root;
       let editing = false;
@@ -483,7 +482,6 @@
         const specialty = SPECIALTIES.find((item) => item.id === button.dataset.specialty);
         if (!specialty || specialty.id === activeSpecialty.id) return;
         activeSpecialty = specialty;
-        localStorage.setItem(SPECIALTY_KEY, specialty.id);
         current = activeSpecialty.root;
         trail.length = 0;
         render();

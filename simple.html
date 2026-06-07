@@ -133,6 +133,31 @@
         align-items: center;
         padding: 0 28px;
       }
+      .specialty-tabs {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 12px 16px 0;
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+      }
+      .specialty-tab {
+        min-height: 38px;
+        border: 1px solid #d5d5d5;
+        border-radius: 7px;
+        background: #fff;
+        color: #25334d;
+        padding: 0 12px;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .specialty-tab.active {
+        border-color: #172847;
+        background: #172847;
+        color: #fff;
+      }
       h1 {
         margin: 0;
         font-size: 26px;
@@ -399,8 +424,9 @@
           </p>
         </div>
       </section>
+      <section class="specialty-tabs" id="specialtyTabs" aria-label="Especialidades"></section>
       <section class="bar">
-        <h1>Cuadrilla Mecanica / Estructura / Piping</h1>
+        <h1 id="specialtyTitle">Cuadrilla Mecanica / Estructura / Piping</h1>
       </section>
       <nav class="crumbs" id="crumbs"></nav>
       <section class="list" id="list"></section>
@@ -417,12 +443,31 @@
     </section>
     <script>
       const STORAGE_KEY = "stracon-simple-library-v1";
+      const SPECIALTY_KEY = "stracon-active-specialty-v1";
       const appUrl = `${location.origin}${location.pathname}`;
       const API_URL = `${location.origin}/api/library`;
       const VERIFY_URL = `${location.origin}/api/admin/verify`;
+      const SPECIALTIES = [
+        { id: "mecanica", title: "Cuadrilla Mecanica / Estructura / Piping", root: "root" },
+        { id: "electricos", title: "Electricos", root: "root-electricos" },
+        { id: "obras-civil", title: "Obras civil", root: "root-obras-civil" }
+      ];
+      const BASE_FOLDERS = [
+        ["art", "ART", "blue"],
+        ["certificados-cursos", "Certificados de Cursos", "yellow"],
+        ["certificados-herramientas", "Certificados Herramientas", "gray"],
+        ["cursos", "Cursos", "purple"],
+        ["difusiones", "Difusiones x Cuadrillas", "green"],
+        ["examenes", "Examenes Preocupacionales", "orange"],
+        ["hds", "HDS", "gray"],
+        ["plan-rigging", "Plan Rigging", "yellow"],
+        ["procedimientos", "Procedimientos", "blue"]
+      ];
       let library = loadLocalLibrary();
       const trail = [];
-      let current = "root";
+      let activeSpecialty = SPECIALTIES.find((item) => item.id === localStorage.getItem(SPECIALTY_KEY)) || SPECIALTIES[0];
+      ensureSpecialtyFolders(library);
+      let current = activeSpecialty.root;
       let editing = false;
       let adminPassword = sessionStorage.getItem("stracon-admin-password") || "";
       let isAdmin = Boolean(adminPassword);
@@ -430,6 +475,17 @@
       let lastVersion = library.version || library.updatedAt || 0;
       document.querySelector("#qrUrl").textContent = appUrl;
       document.querySelector("#qrImage").src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(appUrl)}`;
+      document.querySelector("#specialtyTabs").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-specialty]");
+        if (!button) return;
+        const specialty = SPECIALTIES.find((item) => item.id === button.dataset.specialty);
+        if (!specialty || specialty.id === activeSpecialty.id) return;
+        activeSpecialty = specialty;
+        localStorage.setItem(SPECIALTY_KEY, specialty.id);
+        current = activeSpecialty.root;
+        trail.length = 0;
+        render();
+      });
       document.querySelector("#toggleQr").addEventListener("click", () => {
         document.querySelector("#qrPanel").classList.toggle("open");
       });
@@ -467,11 +523,18 @@
       function render() {
         const list = document.querySelector("#list");
         const crumbs = document.querySelector("#crumbs");
+        ensureSpecialtyFolders(library);
         document.body.classList.toggle("admin", isAdmin);
         document.body.classList.toggle("editing", editing && isAdmin);
         document.querySelector("#adminLogin").textContent = isAdmin ? "Admin activo" : "Admin";
         document.querySelector("#adminLoginRow").style.display = isAdmin ? "none" : "flex";
         document.querySelector("#toggleEdit").textContent = editing ? "Listo" : "Editar";
+        document.querySelector("#specialtyTitle").textContent = activeSpecialty.title;
+        document.querySelector("#specialtyTabs").innerHTML = SPECIALTIES.map((specialty) => `
+          <button class="specialty-tab ${specialty.id === activeSpecialty.id ? "active" : ""}" type="button" data-specialty="${specialty.id}">
+            ${escapeHtml(specialty.title)}
+          </button>
+        `).join("");
         const currentFolderName = trail.length ? trail[trail.length - 1].name : "Carpetas";
         crumbs.innerHTML = `
           <div class="crumb-left">
@@ -486,7 +549,7 @@
         `;
         crumbs.querySelector("#goBack")?.addEventListener("click", goBack);
         crumbs.querySelector("#goHome")?.addEventListener("click", () => {
-          current = "root";
+          current = activeSpecialty.root;
           trail.length = 0;
           render();
         });
@@ -589,7 +652,7 @@
 
       function goBack() {
         trail.pop();
-        current = trail.length ? trail[trail.length - 1].id : "root";
+        current = trail.length ? trail[trail.length - 1].id : activeSpecialty.root;
         render();
       }
 
@@ -636,17 +699,15 @@
       function moveItem(id) {
         const item = library.folders.find((entry) => entry.id === id) || library.files.find((entry) => entry.id === id);
         if (!item) return;
-        const options = library.folders
+        const availableFolders = library.folders
+          .filter((folder) => folderRoot(folder.id) === activeSpecialty.root)
           .filter((folder) => folder.id !== id)
-          .map((folder, index) => `${index + 1}. ${folderPath(folder.id)}`);
+          .filter((folder) => item.kind !== "folder" || !folderIds(item.id).includes(folder.id));
+        const options = availableFolders.map((folder, index) => `${index + 1}. ${folderPath(folder.id)}`);
         const selected = prompt(`Mover a carpeta numero:\n${options.join("\n")}`);
         const index = Number(selected) - 1;
-        const target = library.folders.filter((folder) => folder.id !== id)[index];
+        const target = availableFolders[index];
         if (!target) return;
-        if (item.kind === "folder" && folderIds(item.id).includes(target.id)) {
-          alert("No se puede mover una carpeta dentro de si misma.");
-          return;
-        }
         item.parent = target.id;
         saveLibrary();
         render();
@@ -729,6 +790,23 @@
         document.querySelector("#adminMessage").textContent = text;
       }
 
+      function ensureSpecialtyFolders(targetLibrary) {
+        if (!Array.isArray(targetLibrary.folders)) targetLibrary.folders = [];
+        SPECIALTIES.slice(1).forEach((specialty) => {
+          BASE_FOLDERS.forEach(([slug, name, color]) => {
+            const id = `${specialty.id}-${slug}`;
+            if (targetLibrary.folders.some((folder) => folder.id === id)) return;
+            targetLibrary.folders.push({
+              id,
+              kind: "folder",
+              parent: specialty.root,
+              name,
+              color
+            });
+          });
+        });
+      }
+
       function folderIds(id) {
         const ids = [id];
         library.folders.filter((item) => item.parent === id).forEach((child) => {
@@ -740,8 +818,15 @@
       function folderPath(id) {
         const folder = library.folders.find((item) => item.id === id);
         if (!folder) return "";
-        if (folder.parent === "root") return folder.name;
+        if (SPECIALTIES.some((specialty) => specialty.root === folder.parent)) return folder.name;
         return `${folderPath(folder.parent)} / ${folder.name}`;
+      }
+
+      function folderRoot(id) {
+        const folder = library.folders.find((item) => item.id === id);
+        if (!folder) return "";
+        if (SPECIALTIES.some((specialty) => specialty.root === folder.parent)) return folder.parent;
+        return folderRoot(folder.parent);
       }
 
       function saveLibrary() {

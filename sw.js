@@ -1,10 +1,11 @@
-const CACHE_NAME = "stracon-docs-v1";
-const RUNTIME_CACHE = "stracon-docs-runtime-v1";
+const CACHE_NAME = "stracon-docs-v2";
+const RUNTIME_CACHE = "stracon-docs-runtime-v2";
 const APP_SHELL = [
   "./",
   "./simple.html",
   "./manifest.webmanifest",
-  "./stracon-icon.svg",
+  "./stracon-app-icon-192.png",
+  "./stracon-app-icon-512.png",
   "./sw.js"
 ];
 
@@ -28,6 +29,10 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
@@ -35,6 +40,11 @@ self.addEventListener("fetch", (event) => {
 
   if (event.request.mode === "navigate") {
     event.respondWith(networkFirst(event.request, "./simple.html"));
+    return;
+  }
+
+  if (["/simple.html", "/manifest.webmanifest", "/sw.js"].includes(url.pathname)) {
+    event.respondWith(networkFirst(event.request));
     return;
   }
 

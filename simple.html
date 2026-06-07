@@ -837,10 +837,23 @@
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-Admin-Password": adminPassword
+            "X-Admin-Password": adminPassword,
+            "X-Library-Version": String(lastVersion || library.version || library.updatedAt || 0)
           },
           body: JSON.stringify(library)
         }).then((response) => {
+          if (response.status === 409) {
+            return response.json().then((payload) => {
+              const remote = payload.library;
+              if (remote?.folders && remote?.files) {
+                library = remote;
+                lastVersion = remote.version || remote.updatedAt || Date.now();
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(library));
+                render();
+              }
+              throw new Error("Datos desactualizados");
+            });
+          }
           if (!response.ok) throw new Error("No autorizado");
           return response.json();
         })
@@ -851,9 +864,13 @@
             serverSync = true;
             updateSyncBadge();
           })
-          .catch(() => {
+          .catch((error) => {
             serverSync = false;
-            alert("No se pudo sincronizar. Revisa la clave admin o la conexion.");
+            if (error.message === "Datos desactualizados") {
+              alert("La app estaba desactualizada. Recargue la documentacion del servidor para evitar borrar archivos nuevos.");
+            } else {
+              alert("No se pudo sincronizar. Revisa la clave admin o la conexion.");
+            }
             updateSyncBadge();
           });
       }

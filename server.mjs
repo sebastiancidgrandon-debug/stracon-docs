@@ -1,12 +1,13 @@
 import { createServer } from "node:http";
-import { cp, mkdir, readFile, stat, writeFile } from "node:fs/promises";
-import { extname, join, normalize } from "node:path";
+import { cp, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { basename, extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const storageRoot = process.env.STORAGE_DIR || root;
 const dataDir = process.env.DATA_DIR || join(storageRoot, "data");
 const uploadsDir = process.env.UPLOADS_DIR || join(storageRoot, "uploads");
+const backupsDir = join(dataDir, "backups");
 const libraryPath = join(dataDir, "library.json");
 const port = Number(process.env.PORT || 5176);
 const adminPassword = process.env.ADMIN_PASSWORD || "stracon2026";
@@ -35,6 +36,7 @@ const types = {
 
 await mkdir(dataDir, { recursive: true });
 await mkdir(uploadsDir, { recursive: true });
+await mkdir(backupsDir, { recursive: true });
 await ensureLibrary();
 
 createServer(async (req, res) => {
@@ -55,6 +57,16 @@ createServer(async (req, res) => {
       return;
     }
 
+    if (req.url === "/api/admin/recovery" && req.method === "GET") {
+      if (req.headers["x-admin-password"] !== adminPassword) {
+        res.writeHead(401, { "Content-Type": "application/json; charset=utf-8" });
+        res.end(JSON.stringify({ error: "No autorizado" }));
+        return;
+      }
+      sendJson(res, await recoveryReport());
+      return;
+    }
+
     if (req.url === "/api/library" && req.method === "POST") {
       if (req.headers["x-admin-password"] !== adminPassword) {
         res.writeHead(401, { "Content-Type": "application/json; charset=utf-8" });
@@ -63,9 +75,21 @@ createServer(async (req, res) => {
       }
       const body = await readBody(req);
       const library = JSON.parse(body);
+      const current = await readLibrary();
+      const clientVersion = Number(req.headers["x-library-version"] || 0);
+      const currentVersion = Number(current.version || current.updatedAt || 0);
+      if (!clientVersion || (currentVersion && clientVersion < currentVersion)) {
+        res.writeHead(409, { "Content-Type": "application/json; charset=utf-8" });
+        res.end(JSON.stringify({
+          error: "Datos desactualizados",
+          library: current
+        }));
+        return;
+      }
       await persistUploadedFiles(library);
       library.version = Date.now();
       library.updatedAt = library.version;
+      await backupLibrary(current);
       await writeFile(libraryPath, JSON.stringify(library, null, 2));
       sendJson(res, library);
       return;
@@ -144,6 +168,60 @@ async function ensureLibrary() {
 
 async function readLibrary() {
   return JSON.parse(await readFile(libraryPath, "utf8"));
+}
+
+async function backupLibrary(library) {
+  const version = library.version || library.updatedAt || Date.now();
+  const backupPath = join(backupsDir, `library-${version}.json`);
+  await writeFile(backupPath, JSON.stringify(library, null, 2));
+}
+
+async function recoveryReport() {
+  const library = await readLibrary();
+  const referencedFiles = new Set(
+    (library.files || [])
+      .map((file) => file.url)
+      .filter(Boolean)
+      .map((url) => basename(decodeURIComponent(url)))
+  );
+  const uploads = await fileList(uploadsDir, "/uploads/");
+  const backups = await fileList(backupsDir, "/api/admin/backups/");
+
+  return {
+    library: {
+      version: library.version,
+      updatedAt: library.updatedAt,
+      folders: library.folders?.length || 0,
+      files: library.files?.length || 0
+    },
+    uploads: uploads.map((file) => ({
+      ...file,
+      referenced: referencedFiles.has(file.name)
+    })),
+    orphanUploads: uploads.filter((file) => !referencedFiles.has(file.name)),
+    backups
+  };
+}
+
+async function fileList(dir, urlPrefix) {
+  try {
+    const names = await readdir(dir);
+    const files = [];
+    for (const name of names) {
+      const filePath = join(dir, name);
+      const info = await stat(filePath);
+      if (!info.isFile()) continue;
+      files.push({
+        name,
+        url: `${urlPrefix}${encodeURIComponent(name)}`,
+        size: info.size,
+        modifiedAt: info.mtime.toISOString()
+      });
+    }
+    return files.sort((a, b) => a.name.localeCompare(b.name));
+  } catch {
+    return [];
+  }
 }
 
 function sendJson(res, value) {

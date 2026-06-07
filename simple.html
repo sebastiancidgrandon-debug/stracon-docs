@@ -291,7 +291,8 @@
       }
       .file.pdf { background: #d33a3a; }
       .file.doc, .file.docx { background: #2b579a; }
-      .file.xls, .file.xlsx { background: #177245; }
+      .file.xls, .file.xlsx, .file.csv { background: #177245; }
+      .file.ppt, .file.pptx { background: #c43e1c; }
       .file.jpg, .file.jpeg, .file.png { background: #238457; }
       .empty {
         max-width: 760px;
@@ -431,7 +432,7 @@
       </section>
       <nav class="crumbs" id="crumbs"></nav>
       <section class="list" id="list"></section>
-      <input class="hidden" id="fileInput" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,image/*" />
+      <input class="hidden" id="fileInput" type="file" multiple />
     </main>
     <section class="viewer" id="viewer">
       <div class="viewer-card">

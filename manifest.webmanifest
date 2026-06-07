@@ -1,6 +1,6 @@
 {
-  "name": "STRACON Documentos",
-  "short_name": "STRACON Docs",
+  "name": "Stracon Docs SF",
+  "short_name": "Docs SF",
   "description": "PWA offline-first para gestion documental en terreno.",
   "start_url": "./simple.html",
   "scope": "./",

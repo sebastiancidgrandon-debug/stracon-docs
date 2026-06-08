@@ -938,7 +938,7 @@
       }
 
       async function refreshFromServer() {
-        if (!serverSync || editing) return;
+        if (editing) return;
         try {
           const response = await fetch(API_URL, { cache: "no-store" });
           if (!response.ok) throw new Error("No server library");
@@ -950,6 +950,8 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(library));
             render();
           }
+          serverSync = true;
+          updateSyncBadge();
         } catch {
           serverSync = false;
           updateSyncBadge();

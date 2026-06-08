@@ -76,6 +76,19 @@ createServer(async (req, res) => {
       const body = await readBody(req);
       const library = JSON.parse(body);
       const current = await readLibrary();
+      if (
+        (current.folders?.length || current.files?.length) &&
+        !library.folders?.length &&
+        !library.files?.length &&
+        !library.allowEmptyReplace
+      ) {
+        res.writeHead(409, { "Content-Type": "application/json; charset=utf-8" });
+        res.end(JSON.stringify({
+          error: "Biblioteca vacia rechazada",
+          library: current
+        }));
+        return;
+      }
       await persistUploadedFiles(library);
       const merged = mergeLibraries(current, library);
       merged.version = Date.now();
@@ -225,6 +238,7 @@ function itemTime(item) {
 }
 
 function isDeleted(item, deletedIds) {
+  if (!Object.prototype.hasOwnProperty.call(deletedIds, item.id)) return false;
   return Number(deletedIds[item.id] || 0) >= itemTime(item);
 }
 

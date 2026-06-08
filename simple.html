@@ -613,6 +613,7 @@
         if (!files.length) return;
         Promise.all(files.map(readFile)).then((items) => {
           library.files.push(...items);
+          touchLibrary();
           saveLibrary();
           event.target.value = "";
           render();
@@ -623,6 +624,7 @@
         return new Promise((resolve) => {
           const reader = new FileReader();
           reader.onload = () => {
+            const timestamp = Date.now();
             resolve({
               id: `file-${Date.now()}-${Math.random().toString(16).slice(2)}`,
               kind: "file",
@@ -630,7 +632,9 @@
               name: file.name,
               ext: fileExtension(file.name),
               data: reader.result,
-              mime: file.type || "application/octet-stream"
+              mime: file.type || "application/octet-stream",
+              createdAt: timestamp,
+              updatedAt: timestamp
             });
           };
           reader.readAsDataURL(file);
@@ -659,13 +663,17 @@
       function createFolder() {
         const name = prompt("Nombre de la carpeta");
         if (!name?.trim()) return;
+        const timestamp = Date.now();
         library.folders.push({
           id: `folder-${Date.now()}`,
           kind: "folder",
           parent: current,
           name: name.trim(),
-          color: "yellow"
+          color: "yellow",
+          createdAt: timestamp,
+          updatedAt: timestamp
         });
+        touchLibrary();
         saveLibrary();
         render();
       }
@@ -676,6 +684,8 @@
         const name = prompt("Nuevo nombre", folder.name);
         if (!name?.trim()) return;
         folder.name = name.trim();
+        touchItem(folder);
+        touchLibrary();
         saveLibrary();
         render();
       }
@@ -687,11 +697,15 @@
         if (!name || !confirm(`Eliminar "${name}"?`)) return;
         if (folder) {
           const ids = folderIds(folder.id);
+          const fileIds = library.files.filter((item) => ids.includes(item.parent)).map((item) => item.id);
+          [...ids, ...fileIds].forEach(markDeleted);
           library.folders = library.folders.filter((item) => !ids.includes(item.id));
           library.files = library.files.filter((item) => !ids.includes(item.parent));
         } else {
+          markDeleted(file.id);
           library.files = library.files.filter((item) => item.id !== id);
         }
+        touchLibrary();
         saveLibrary();
         render();
       }
@@ -709,6 +723,8 @@
         const target = availableFolders[index];
         if (!target) return;
         item.parent = target.id;
+        touchItem(item);
+        touchLibrary();
         saveLibrary();
         render();
       }
@@ -792,6 +808,7 @@
 
       function ensureSpecialtyFolders(targetLibrary) {
         if (!Array.isArray(targetLibrary.folders)) targetLibrary.folders = [];
+        if (!targetLibrary.deletedIds || Array.isArray(targetLibrary.deletedIds)) targetLibrary.deletedIds = {};
         SPECIALTIES.slice(1).forEach((specialty) => {
           BASE_FOLDERS.forEach(([slug, name, color]) => {
             const id = `${specialty.id}-${slug}`;
@@ -801,10 +818,27 @@
               kind: "folder",
               parent: specialty.root,
               name,
-              color
+              color,
+              createdAt: targetLibrary.version || targetLibrary.updatedAt || 0,
+              updatedAt: targetLibrary.version || targetLibrary.updatedAt || 0
             });
           });
         });
+      }
+
+      function touchItem(item) {
+        item.updatedAt = Date.now();
+        if (!item.createdAt) item.createdAt = item.updatedAt;
+      }
+
+      function touchLibrary() {
+        if (!library.deletedIds || Array.isArray(library.deletedIds)) library.deletedIds = {};
+        library.updatedAt = Date.now();
+      }
+
+      function markDeleted(id) {
+        if (!library.deletedIds || Array.isArray(library.deletedIds)) library.deletedIds = {};
+        library.deletedIds[id] = Date.now();
       }
 
       function folderIds(id) {
@@ -830,7 +864,7 @@
       }
 
       function saveLibrary() {
-        library.updatedAt = Date.now();
+        touchLibrary();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(library));
         setSyncText("Guardando");
         fetch(API_URL, {
@@ -971,6 +1005,7 @@
         return {
           version,
           updatedAt: version,
+          deletedIds: {},
           folders: [
             { id: "art", kind: "folder", parent: "root", name: "ART", color: "blue" },
             { id: "certificados-cursos", kind: "folder", parent: "root", name: "Certificados de Cursos", color: "yellow" },

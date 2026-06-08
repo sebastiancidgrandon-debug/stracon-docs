@@ -76,22 +76,13 @@ createServer(async (req, res) => {
       const body = await readBody(req);
       const library = JSON.parse(body);
       const current = await readLibrary();
-      const clientVersion = Number(req.headers["x-library-version"] || 0);
-      const currentVersion = Number(current.version || current.updatedAt || 0);
-      if (!clientVersion || (currentVersion && clientVersion < currentVersion)) {
-        res.writeHead(409, { "Content-Type": "application/json; charset=utf-8" });
-        res.end(JSON.stringify({
-          error: "Datos desactualizados",
-          library: current
-        }));
-        return;
-      }
       await persistUploadedFiles(library);
-      library.version = Date.now();
-      library.updatedAt = library.version;
+      const merged = mergeLibraries(current, library);
+      merged.version = Date.now();
+      merged.updatedAt = merged.version;
       await backupLibrary(current);
-      await writeFile(libraryPath, JSON.stringify(library, null, 2));
-      sendJson(res, library);
+      await writeFile(libraryPath, JSON.stringify(merged, null, 2));
+      sendJson(res, merged);
       return;
     }
 
@@ -168,6 +159,94 @@ async function ensureLibrary() {
 
 async function readLibrary() {
   return JSON.parse(await readFile(libraryPath, "utf8"));
+}
+
+function mergeLibraries(current, incoming) {
+  const deletedIds = mergeDeletedIds(current.deletedIds, incoming.deletedIds);
+  const folders = mergeItems(current.folders, incoming.folders, deletedIds);
+  const files = mergeItems(current.files, incoming.files, deletedIds);
+  const prunedFolders = pruneFolders(folders, deletedIds);
+  const prunedFiles = pruneFiles(files, prunedFolders, deletedIds);
+
+  return {
+    ...current,
+    ...incoming,
+    folders: prunedFolders,
+    files: prunedFiles,
+    deletedIds
+  };
+}
+
+function mergeItems(currentItems = [], incomingItems = [], deletedIds = {}) {
+  const byId = new Map();
+
+  for (const item of currentItems) {
+    if (!item?.id) continue;
+    byId.set(item.id, normalizeItem(item));
+  }
+
+  for (const item of incomingItems) {
+    if (!item?.id) continue;
+    const normalized = normalizeItem(item);
+    const existing = byId.get(normalized.id);
+    if (!existing || itemTime(normalized) > itemTime(existing)) {
+      byId.set(normalized.id, {
+        ...existing,
+        ...normalized,
+        url: normalized.url || existing?.url,
+        mime: normalized.mime || existing?.mime
+      });
+    }
+  }
+
+  return [...byId.values()]
+    .filter((item) => !isDeleted(item, deletedIds))
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+}
+
+function mergeDeletedIds(currentDeleted = {}, incomingDeleted = {}) {
+  const deletedIds = { ...currentDeleted };
+  for (const [id, value] of Object.entries(incomingDeleted || {})) {
+    deletedIds[id] = Math.max(Number(deletedIds[id] || 0), Number(value || 0));
+  }
+  return deletedIds;
+}
+
+function normalizeItem(item) {
+  return {
+    ...item,
+    updatedAt: Number(item.updatedAt || item.createdAt || 0),
+    createdAt: Number(item.createdAt || item.updatedAt || 0)
+  };
+}
+
+function itemTime(item) {
+  return Number(item.updatedAt || item.createdAt || 0);
+}
+
+function isDeleted(item, deletedIds) {
+  return Number(deletedIds[item.id] || 0) >= itemTime(item);
+}
+
+function pruneFolders(folders, deletedIds) {
+  const roots = new Set(["root", "root-electricos", "root-obras-civil"]);
+  let changed = true;
+  let kept = folders.filter((folder) => !isDeleted(folder, deletedIds));
+
+  while (changed) {
+    changed = false;
+    const folderIds = new Set(kept.map((folder) => folder.id));
+    const next = kept.filter((folder) => roots.has(folder.parent) || folderIds.has(folder.parent));
+    changed = next.length !== kept.length;
+    kept = next;
+  }
+
+  return kept;
+}
+
+function pruneFiles(files, folders, deletedIds) {
+  const validParents = new Set(["root", "root-electricos", "root-obras-civil", ...folders.map((folder) => folder.id)]);
+  return files.filter((file) => validParents.has(file.parent) && !isDeleted(file, deletedIds));
 }
 
 async function backupLibrary(library) {

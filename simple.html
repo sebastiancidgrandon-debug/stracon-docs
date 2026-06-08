@@ -475,6 +475,7 @@
       let isAdmin = Boolean(adminPassword);
       let serverSync = false;
       let lastVersion = library.version || library.updatedAt || 0;
+      let lastServerLibrary = cloneLibrary(library);
       document.querySelector("#qrUrl").textContent = appUrl;
       document.querySelector("#qrImage").src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(appUrl)}`;
       document.querySelector("#specialtyTabs").addEventListener("click", (event) => {
@@ -613,6 +614,10 @@
       function uploadFiles(event) {
         const files = Array.from(event.target.files || []);
         if (!files.length) return;
+        if (!canEdit()) {
+          event.target.value = "";
+          return;
+        }
         Promise.all(files.map(readFile)).then((items) => {
           library.files.push(...items);
           touchLibrary();
@@ -663,6 +668,7 @@
       }
 
       function createFolder() {
+        if (!canEdit()) return;
         const name = prompt("Nombre de la carpeta");
         if (!name?.trim()) return;
         const timestamp = Date.now();
@@ -681,6 +687,7 @@
       }
 
       function renameFolder(id) {
+        if (!canEdit()) return;
         const folder = library.folders.find((item) => item.id === id);
         if (!folder) return;
         const name = prompt("Nuevo nombre", folder.name);
@@ -693,6 +700,7 @@
       }
 
       function deleteItem(id) {
+        if (!canEdit()) return;
         const folder = library.folders.find((item) => item.id === id);
         const file = library.files.find((item) => item.id === id);
         const name = folder?.name || file?.name;
@@ -713,6 +721,7 @@
       }
 
       function moveItem(id) {
+        if (!canEdit()) return;
         const item = library.folders.find((entry) => entry.id === id) || library.files.find((entry) => entry.id === id);
         if (!item) return;
         const availableFolders = library.folders
@@ -843,6 +852,16 @@
         library.deletedIds[id] = Date.now();
       }
 
+      function canEdit() {
+        if (isAdmin && adminPassword) return true;
+        alert("Entra como Admin antes de subir, crear, mover o eliminar documentos.");
+        return false;
+      }
+
+      function cloneLibrary(value) {
+        return JSON.parse(JSON.stringify(value));
+      }
+
       function folderIds(id) {
         const ids = [id];
         library.folders.filter((item) => item.parent === id).forEach((child) => {
@@ -896,6 +915,7 @@
           .then((saved) => {
             library = saved;
             lastVersion = saved.version || saved.updatedAt || Date.now();
+            lastServerLibrary = cloneLibrary(saved);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(library));
             serverSync = true;
             render();
@@ -904,6 +924,11 @@
           })
           .catch((error) => {
             serverSync = false;
+            if (lastServerLibrary?.folders && lastServerLibrary?.files) {
+              library = cloneLibrary(lastServerLibrary);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(library));
+              render();
+            }
             if (error.message === "Datos desactualizados") {
               alert("La app estaba desactualizada. Recargue la documentacion del servidor para evitar borrar archivos nuevos.");
             } else {
@@ -967,6 +992,7 @@
           if (remote?.folders && remote?.files) {
             library = remote;
             lastVersion = remote.version || remote.updatedAt || Date.now();
+            lastServerLibrary = cloneLibrary(remote);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(library));
             serverSync = true;
           }

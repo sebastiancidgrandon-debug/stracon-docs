@@ -136,7 +136,7 @@ function readBody(req) {
     let body = "";
     req.on("data", (chunk) => {
       body += chunk;
-      if (body.length > 80 * 1024 * 1024) reject(new Error("Archivo demasiado grande para esta demo"));
+      if (body.length > 250 * 1024 * 1024) reject(new Error("Archivo demasiado grande. Sube menos documentos a la vez."));
     });
     req.on("end", () => resolve(body));
     req.on("error", reject);

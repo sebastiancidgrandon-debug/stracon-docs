@@ -1,5 +1,5 @@
-const CACHE_NAME = "stracon-docs-v5";
-const RUNTIME_CACHE = "stracon-docs-runtime-v5";
+const CACHE_NAME = "stracon-docs-v6";
+const RUNTIME_CACHE = "stracon-docs-runtime-v6";
 const APP_SHELL = [
   "./",
   "./simple.html",

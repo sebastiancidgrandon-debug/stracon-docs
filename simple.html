@@ -398,6 +398,7 @@
         <span>
           <button class="qr-button" id="toggleQr" type="button">QR</button>
           <button class="edit-button" id="adminLogin" type="button">Admin</button>
+          <button class="edit-button" id="syncNow" type="button">Sincronizar</button>
           <span class="sync-badge" id="syncBadge">Local</span>
         </span>
       </section>
@@ -508,12 +509,13 @@
       });
       document.querySelector("#fileInput").addEventListener("change", uploadFiles);
       document.querySelector("#closeViewer").addEventListener("click", closeViewer);
+      document.querySelector("#syncNow").addEventListener("click", forceSync);
 
       async function init() {
         registerServiceWorker();
         await loadFromServer();
         render();
-        setInterval(refreshFromServer, 3000);
+        setInterval(refreshFromServer, 2000);
         window.addEventListener("focus", refreshFromServer);
         document.addEventListener("visibilitychange", () => {
           if (!document.hidden) refreshFromServer();
@@ -867,7 +869,7 @@
         touchLibrary();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(library));
         setSyncText("Guardando");
-        fetch(API_URL, {
+        return fetch(API_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -896,16 +898,19 @@
             lastVersion = saved.version || saved.updatedAt || Date.now();
             localStorage.setItem(STORAGE_KEY, JSON.stringify(library));
             serverSync = true;
+            render();
             updateSyncBadge();
+            return true;
           })
           .catch((error) => {
             serverSync = false;
             if (error.message === "Datos desactualizados") {
               alert("La app estaba desactualizada. Recargue la documentacion del servidor para evitar borrar archivos nuevos.");
             } else {
-              alert("No se pudo sincronizar. Revisa la clave admin o la conexion.");
+              alert("No se pudo sincronizar con el servidor. Lo que ves quedo solo en este equipo hasta que diga Sincronizado.");
             }
             updateSyncBadge();
+            return false;
           });
       }
 
@@ -971,6 +976,12 @@
         updateSyncBadge();
       }
 
+      async function forceSync() {
+        setSyncText("Sincronizando");
+        await loadFromServer();
+        render();
+      }
+
       async function refreshFromServer() {
         if (editing) return;
         try {
@@ -993,7 +1004,7 @@
       }
 
       function updateSyncBadge() {
-        setSyncText(serverSync ? "Sincronizado" : "Local");
+        setSyncText(serverSync ? "Sincronizado" : "No sincronizado");
       }
 
       function setSyncText(text) {

@@ -25,12 +25,22 @@ const types = {
   ".pdf": "application/pdf",
   ".doc": "application/msword",
   ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".docm": "application/vnd.ms-word.document.macroEnabled.12",
+  ".rtf": "application/rtf",
+  ".odt": "application/vnd.oasis.opendocument.text",
   ".xls": "application/vnd.ms-excel",
   ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".xlsm": "application/vnd.ms-excel.sheet.macroEnabled.12",
+  ".ods": "application/vnd.oasis.opendocument.spreadsheet",
   ".csv": "text/csv; charset=utf-8",
   ".ppt": "application/vnd.ms-powerpoint",
   ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ".pptm": "application/vnd.ms-powerpoint.presentation.macroEnabled.12",
+  ".odp": "application/vnd.oasis.opendocument.presentation",
   ".txt": "text/plain; charset=utf-8",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".heic": "image/heic",
   ".zip": "application/zip"
 };
 
